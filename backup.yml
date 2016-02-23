@@ -1,0 +1,36 @@
+---
+- hosts: localhost
+  tasks:
+  - name: Create BTRFS snapshot
+    command: btrfs su sn /btrfs/backup /btrfs/backup_"{{ ansible_date_time.date }}_{{ ansible_date_time.time }}"
+
+- hosts: nodes
+  tasks:
+  - name: Back Up nodes via sync
+#    synchronize: mode=pull src=/ dest=/btrfs/backup/"{{ ansible_hostname }}"
+    synchronize: 
+      mode: pull
+      src:  /
+      dest: /btrfs/backup/"{{ ansible_hostname }}"
+      rsync_opts:
+      - "--delete"
+      - "--one-file-system"
+
+- hosts: localhost
+  tasks:
+  - shell: df -h
+    register: dfout
+  - debug: var=dfout
+
+- hosts: localhost
+  tasks:
+  - name: Dedup Btrfs
+    command: source /opt/rh/python33/enable
+    command: export LC_ALL=$LANG
+    command: bedup dedup
+
+- hosts: localhost
+  tasks:
+  - shell: df -h
+    register: dfout
+  - debug: var=dfout
